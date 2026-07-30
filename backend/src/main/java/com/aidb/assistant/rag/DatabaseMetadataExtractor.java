@@ -14,12 +14,16 @@ public class DatabaseMetadataExtractor {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseMetadataExtractor.class);
 
-    public SchemaDTO extractMetadata(ConnectionConfig config) throws SQLException {
-        String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
-                config.getHost(), config.getPort(), config.getDatabaseName());
+    private final TargetDatabasePoolManager poolManager;
 
-        log.info("Connecting to MySQL target database at {}", url);
-        try (Connection conn = DriverManager.getConnection(url, config.getUsername(), config.getPassword())) {
+    public DatabaseMetadataExtractor(TargetDatabasePoolManager poolManager) {
+        this.poolManager = poolManager;
+    }
+
+    public SchemaDTO extractMetadata(ConnectionConfig config) throws SQLException {
+
+        log.info("Connecting to MySQL target database");
+        try (Connection conn = poolManager.getDataSource(config).getConnection()) {
             DatabaseMetaData metaData = conn.getMetaData();
             
             SchemaDTO schema = new SchemaDTO();

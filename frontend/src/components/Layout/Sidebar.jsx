@@ -4,11 +4,6 @@ import {
   LayoutDashboard, 
   Database, 
   MessageSquareCode, 
-  TableProperties, 
-  Bookmark, 
-  History, 
-  BarChart3, 
-  Settings,
   Sparkles,
   ShieldCheck,
   ShieldAlert
@@ -19,11 +14,6 @@ export default function Sidebar({ activeDb, isReadOnly }) {
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/chat', label: 'AI Chat', icon: MessageSquareCode },
     { path: '/connection', label: 'DB Connection', icon: Database },
-    { path: '/schema', label: 'Schema Browser', icon: TableProperties },
-    { path: '/saved-queries', label: 'Saved Queries', icon: Bookmark },
-    { path: '/history', label: 'Query History', icon: History },
-    { path: '/analytics', label: 'Analytics & Insights', icon: BarChart3 },
-    { path: '/settings', label: 'Settings', icon: Settings },
   ];
 
   return (

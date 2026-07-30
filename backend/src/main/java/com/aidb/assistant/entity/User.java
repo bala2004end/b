@@ -1,80 +1,50 @@
 package com.aidb.assistant.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(
+    name = "users",
+    indexes = {
+        @Index(name = "idx_users_username", columnList = "username"),
+        @Index(name = "idx_users_email", columnList = "email")
+    }
+)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, length = 50)
     private String username;
 
-    @Column(nullable = false)
+    @Column(unique = true, nullable = false, length = 100)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String password;
 
-    private String role; // ROLE_USER, ROLE_ADMIN
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private String role = "ROLE_USER";
 
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    public User() {}
-
-    public User(Long id, String username, String email, String password, String role, LocalDateTime createdAt) {
-        this.id = id;
-        this.username = username;
-        this.email = email;
-        this.password = password;
-        this.role = role;
-        this.createdAt = createdAt;
-    }
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         if (this.role == null) {
             this.role = "ROLE_USER";
-        }
-    }
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    public static Builder builder() { return new Builder(); }
-
-    public static class Builder {
-        private Long id;
-        private String username;
-        private String email;
-        private String password;
-        private String role;
-        private LocalDateTime createdAt;
-
-        public Builder id(Long id) { this.id = id; return this; }
-        public Builder username(String username) { this.username = username; return this; }
-        public Builder email(String email) { this.email = email; return this; }
-        public Builder password(String password) { this.password = password; return this; }
-        public Builder role(String role) { this.role = role; return this; }
-        public Builder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
-
-        public User build() {
-            return new User(id, username, email, password, role, createdAt);
         }
     }
 }

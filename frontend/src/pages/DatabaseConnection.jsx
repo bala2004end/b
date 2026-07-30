@@ -6,7 +6,7 @@ export default function DatabaseConnection() {
   const [host, setHost] = useState('localhost');
   const [port, setPort] = useState(3306);
   const [username, setUsername] = useState('root');
-  const [password, setPassword] = useState('root123');
+  const [password, setPassword] = useState('');
   const [databaseName, setDatabaseName] = useState('sample_company_db');
   const [isReadOnly, setIsReadOnly] = useState(true);
 

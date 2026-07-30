@@ -1,22 +1,68 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../services/api';
 import SqlCodeBlock from '../components/Common/SqlCodeBlock';
 import DataTable from '../components/Common/DataTable';
 import AiChart from '../components/Charts/AiChart';
-import { 
-  Send, 
-  Sparkles, 
-  Mic, 
-  MicOff, 
-  RefreshCw, 
-  Database, 
-  Layers, 
-  Bot, 
-  User, 
+import {
+  Send,
+  Sparkles,
+  Mic,
+  MicOff,
+  Layers,
+  Bot,
+  User,
   HelpCircle,
-  Bookmark
+  CheckCircle,
+  XCircle,
+  AlertCircle,
 } from 'lucide-react';
+
+// ── Toast Notification Component ─────────────────────────────────────────────
+function Toast({ message, type = 'success', onDismiss }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 4000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  const iconMap = {
+    success: <CheckCircle size={16} className="text-success" />,
+    error: <XCircle size={16} className="text-danger" />,
+    warning: <AlertCircle size={16} className="text-warning" />,
+  };
+
+  const bgMap = {
+    success: 'border-success border-opacity-50',
+    error: 'border-danger border-opacity-50',
+    warning: 'border-warning border-opacity-50',
+  };
+
+  return (
+    <div
+      className={`glass-card d-flex align-items-center gap-2 px-3 py-2 rounded-3 border ${bgMap[type]}`}
+      style={{ minWidth: '280px', maxWidth: '400px', fontSize: '0.85rem' }}
+    >
+      {iconMap[type]}
+      <span className="flex-grow-1">{message}</span>
+      <button
+        className="btn btn-link p-0 text-muted"
+        onClick={onDismiss}
+        style={{ lineHeight: 1 }}
+        aria-label="Dismiss notification"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+// ── Suggestion Chips ──────────────────────────────────────────────────────────
+const SUGGESTIONS = [
+  'How many employees joined this month?',
+  'Which department has the highest salary?',
+  'Show products with stock below 20.',
+  'Which customers purchased more than ₹50,000?',
+];
 
 export default function AIChat() {
   const [messages, setMessages] = useState([]);
@@ -25,128 +71,153 @@ export default function AIChat() {
   const [isListening, setIsListening] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [explainModalData, setExplainModalData] = useState(null);
+  const [toasts, setToasts] = useState([]);
 
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+  const recognitionRef = useRef(null);
   const location = useLocation();
 
+  // ── Toast helpers ──────────────────────────────────────────────────────────
+  const addToast = useCallback((message, type = 'success') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+  }, []);
+
+  const dismissToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // ── Effects ────────────────────────────────────────────────────────────────
   useEffect(() => {
-    // If prompt passed from Dashboard
     if (location.state?.question) {
       handleSend(location.state.question);
     }
-  }, [location.state]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount
 
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  // ── Send handler ───────────────────────────────────────────────────────────
   const handleSend = async (questionToSend) => {
-    const q = questionToSend || inputQuestion;
-    if (!q || !q.trim()) return;
+    const q = (questionToSend ?? inputQuestion).trim();
+    if (!q || loading) return;
 
-    const userMsg = {
-      id: Date.now(),
-      sender: 'USER',
-      content: q
-    };
-
+    const userMsg = { id: Date.now(), sender: 'USER', content: q };
     setMessages(prev => [...prev, userMsg]);
     setInputQuestion('');
     setLoading(true);
 
     try {
-      const res = await api.post('/chat', {
-        conversationId,
-        question: q
-      });
+      const { data } = await api.post('/chat', { conversationId, question: q });
 
-      if (res.data.conversationId) {
-        setConversationId(res.data.conversationId);
-      }
+      if (data.conversationId) setConversationId(data.conversationId);
 
-      const aiMsg = {
-        id: res.data.messageId || Date.now() + 1,
-        sender: 'AI',
-        content: res.data.explanation,
-        generatedSql: res.data.generatedSql,
-        executionTimeMs: res.data.executionTimeMs,
-        rowsReturned: res.data.rowsReturned,
-        isSuccess: res.data.isSuccess,
-        errorMessage: res.data.errorMessage,
-        data: res.data.data,
-        columns: res.data.columns,
-        chartType: res.data.chartType,
-        retrievedTables: res.data.retrievedTables
-      };
-
-      setMessages(prev => [...prev, aiMsg]);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: data.messageId || Date.now() + 1,
+          sender: 'AI',
+          content: data.explanation,
+          generatedSql: data.generatedSql,
+          executionTimeMs: data.executionTimeMs,
+          rowsReturned: data.rowsReturned,
+          isSuccess: data.isSuccess,
+          errorMessage: data.errorMessage,
+          data: data.data,
+          columns: data.columns,
+          chartType: data.chartType,
+          retrievedTables: data.retrievedTables,
+        },
+      ]);
     } catch (err) {
-      const errorMsg = {
-        id: Date.now() + 1,
-        sender: 'AI',
-        content: 'Error: ' + (err.response?.data?.message || err.message || 'Failed to process question.'),
-        isSuccess: false
-      };
-      setMessages(prev => [...prev, errorMsg]);
+      const errMsg = err.response?.data?.message || err.message || 'Failed to process question.';
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, sender: 'AI', content: errMsg, isSuccess: false },
+      ]);
     } finally {
       setLoading(false);
+      inputRef.current?.focus();
     }
   };
 
-  // Voice Input Speech Recognition
+  // ── Voice input ────────────────────────────────────────────────────────────
   const toggleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Speech recognition is not supported in this browser.');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      addToast('Speech recognition is not supported in this browser.', 'warning');
       return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-
-    if (!isListening) {
-      recognition.start();
-      setIsListening(true);
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInputQuestion(transcript);
-        setIsListening(false);
-      };
-      recognition.onerror = () => setIsListening(false);
-      recognition.onend = () => setIsListening(false);
-    } else {
+    if (isListening) {
+      recognitionRef.current?.stop();
       setIsListening(false);
+      return;
     }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+
+    recognition.onresult = (event) => {
+      setInputQuestion(event.results[0][0].transcript);
+      setIsListening(false);
+    };
+    recognition.onerror = (e) => {
+      addToast(`Speech recognition error: ${e.error}`, 'warning');
+      setIsListening(false);
+    };
+    recognition.onend = () => setIsListening(false);
   };
 
+  // ── Explain handler ────────────────────────────────────────────────────────
   const handleExplain = async (sql) => {
     try {
-      const res = await api.post('/chat/explain', { sqlQuery: sql });
-      setExplainModalData({ sql, plan: res.data });
+      const { data } = await api.post('/chat/explain', { sqlQuery: sql });
+      setExplainModalData({ sql, plan: data });
     } catch (e) {
-      alert('Failed to get execution plan: ' + e.message);
+      addToast(`Failed to get execution plan: ${e.response?.data?.message || e.message}`, 'error');
     }
   };
 
+  // ── Save query handler ─────────────────────────────────────────────────────
   const handleSaveQuery = async (sql) => {
     try {
       await api.post('/saved-queries', {
-        title: 'Saved Query (' + new Date().toLocaleTimeString() + ')',
+        title: `Saved Query (${new Date().toLocaleTimeString()})`,
         sqlQuery: sql,
-        category: 'Chat'
+        category: 'Chat',
       });
-      alert('Query saved to bookmarks!');
+      addToast('Query saved to bookmarks!', 'success');
     } catch (e) {
-      alert('Failed to save query');
+      addToast(`Failed to save query: ${e.response?.data?.message || e.message}`, 'error');
     }
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="container-fluid p-0 chat-container">
-      {/* Messages Scroll Area */}
+    <div className="container-fluid p-0 chat-container" style={{ position: 'relative' }}>
+
+      {/* Toast notifications */}
+      <div
+        style={{
+          position: 'fixed', top: '1rem', right: '1rem',
+          zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '0.5rem',
+        }}
+        aria-live="polite"
+        aria-atomic="false"
+      >
+        {toasts.map(t => (
+          <Toast key={t.id} message={t.message} type={t.type} onDismiss={() => dismissToast(t.id)} />
+        ))}
+      </div>
+
+      {/* Messages area */}
       <div className="chat-messages-scroll pe-2">
         {messages.length === 0 ? (
           <div className="h-100 d-flex flex-column align-items-center justify-content-center text-center p-4">
@@ -155,20 +226,16 @@ export default function AIChat() {
             </div>
             <h4 className="fw-bold gradient-text">How can I help with your Database today?</h4>
             <p className="text-muted small" style={{ maxWidth: '460px' }}>
-              Ask questions in plain English. The RAG engine will search schema embeddings, generate MySQL code, and execute safely.
+              Ask questions in plain English. The RAG engine will search schema embeddings,
+              generate MySQL code, and execute safely.
             </p>
-
             <div className="d-flex flex-wrap gap-2 justify-content-center mt-3" style={{ maxWidth: '600px' }}>
-              {[
-                "How many employees joined this month?",
-                "Which department has the highest salary?",
-                "Show products with stock below 20.",
-                "Which customers purchased more than ₹50000?"
-              ].map((q, idx) => (
+              {SUGGESTIONS.map((q, idx) => (
                 <button
                   key={idx}
-                  className="btn btn-outline-secondary btn-sm rounded-pill text-light py-1.5 px-3 border-secondary border-opacity-25 hover-bg-secondary small"
+                  className="btn btn-outline-secondary btn-sm rounded-pill text-light border-secondary border-opacity-25 small"
                   onClick={() => handleSend(q)}
+                  disabled={loading}
                 >
                   {q}
                 </button>
@@ -178,7 +245,10 @@ export default function AIChat() {
         ) : (
           <div className="d-flex flex-column gap-3 py-3">
             {messages.map((msg) => (
-              <div key={msg.id} className={`d-flex align-items-start gap-3 ${msg.sender === 'USER' ? 'justify-content-end' : ''}`}>
+              <div
+                key={msg.id}
+                className={`d-flex align-items-start gap-3 ${msg.sender === 'USER' ? 'justify-content-end' : ''}`}
+              >
                 {msg.sender === 'AI' && (
                   <div className="p-2 rounded-circle bg-primary text-white flex-shrink-0">
                     <Bot size={18} />
@@ -186,45 +256,57 @@ export default function AIChat() {
                 )}
 
                 <div className={msg.sender === 'USER' ? 'chat-bubble-user' : 'chat-bubble-ai w-100'}>
-                  {/* Sender Name */}
+                  {/* Header row */}
                   <div className="d-flex align-items-center justify-content-between mb-1" style={{ fontSize: '0.75rem' }}>
-                    <span className="fw-semibold text-opacity-75">{msg.sender === 'USER' ? 'You' : 'AI Database Assistant'}</span>
-                    {msg.executionTimeMs && (
-                      <span className="text-muted font-monospace">{msg.executionTimeMs} ms • {msg.rowsReturned} rows</span>
+                    <span className="fw-semibold text-opacity-75">
+                      {msg.sender === 'USER' ? 'You' : 'AI Database Assistant'}
+                    </span>
+                    {msg.executionTimeMs != null && (
+                      <span className="text-muted font-monospace">
+                        {msg.executionTimeMs}ms · {msg.rowsReturned} rows
+                      </span>
                     )}
                   </div>
 
-                  {/* Message Content */}
+                  {/* Error badge */}
+                  {msg.sender === 'AI' && msg.isSuccess === false && (
+                    <div className="d-flex align-items-center gap-1 mb-2 text-danger small">
+                      <XCircle size={14} />
+                      <span>Query failed</span>
+                    </div>
+                  )}
+
+                  {/* Message content */}
                   <div className="lh-base" style={{ fontSize: '0.92rem' }}>{msg.content}</div>
 
-                  {/* RAG Context Schema Badge */}
-                  {msg.retrievedTables && msg.retrievedTables.length > 0 && (
-                    <div className="mt-2 text-muted small d-flex align-items-center gap-1.5" style={{ fontSize: '0.75rem' }}>
+                  {/* RAG context badge */}
+                  {msg.retrievedTables?.length > 0 && (
+                    <div className="mt-2 text-muted small d-flex align-items-center gap-1 flex-wrap" style={{ fontSize: '0.75rem' }}>
                       <Layers size={13} className="text-info" />
-                      <span>RAG Retrieved Schema: </span>
+                      <span>RAG Retrieved:</span>
                       {msg.retrievedTables.map((tbl, i) => (
                         <span key={i} className="badge bg-secondary bg-opacity-50 font-monospace">{tbl}</span>
                       ))}
                     </div>
                   )}
 
-                  {/* Generated SQL Code Block */}
+                  {/* SQL code block */}
                   {msg.generatedSql && (
-                    <SqlCodeBlock 
+                    <SqlCodeBlock
                       sql={msg.generatedSql}
-                      onExecute={() => handleSend("Re-run: " + msg.generatedSql)}
+                      onExecute={() => handleSend(msg.generatedSql)}
                       onExplain={handleExplain}
                       onSave={handleSaveQuery}
                     />
                   )}
 
-                  {/* Visual Analytics Chart */}
+                  {/* Chart */}
                   {msg.chartType && msg.chartType !== 'NONE' && (
                     <AiChart data={msg.data} chartType={msg.chartType} columns={msg.columns} />
                   )}
 
-                  {/* Result Data Table */}
-                  {msg.data && msg.data.length > 0 && (
+                  {/* Data table */}
+                  {msg.data?.length > 0 && (
                     <DataTable data={msg.data} columns={msg.columns} />
                   )}
                 </div>
@@ -237,7 +319,7 @@ export default function AIChat() {
               </div>
             ))}
 
-            {/* Typing Animation Loading Indicator */}
+            {/* Typing indicator */}
             {loading && (
               <div className="d-flex align-items-start gap-3">
                 <div className="p-2 rounded-circle bg-primary text-white flex-shrink-0">
@@ -247,9 +329,9 @@ export default function AIChat() {
                   <div className="d-flex align-items-center gap-2">
                     <span className="small text-muted">Searching Vector DB & Generating SQL</span>
                     <div className="typing-indicator">
-                      <div className="typing-dot"></div>
-                      <div className="typing-dot"></div>
-                      <div className="typing-dot"></div>
+                      <div className="typing-dot" />
+                      <div className="typing-dot" />
+                      <div className="typing-dot" />
                     </div>
                   </div>
                 </div>
@@ -260,32 +342,44 @@ export default function AIChat() {
         )}
       </div>
 
-      {/* Input Bar */}
+      {/* Input bar */}
       <div className="pt-3 border-top border-secondary border-opacity-25 mt-auto">
-        <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="glass-card p-2 rounded-4">
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+          className="glass-card p-2 rounded-4"
+          aria-label="Chat input form"
+        >
           <div className="input-group align-items-center">
             <input
+              ref={inputRef}
+              id="chat-input"
               type="text"
               className="form-control bg-transparent text-light border-0 shadow-none px-3"
-              placeholder="Ask a question in plain English (e.g. Which department has highest salary?)..."
+              placeholder="Ask a question in plain English…"
               value={inputQuestion}
               onChange={(e) => setInputQuestion(e.target.value)}
               disabled={loading}
+              maxLength={2000}
+              autoComplete="off"
+              aria-label="Your question"
             />
 
             <button
               type="button"
-              className={`btn btn-link p-2 ${isListening ? 'text-danger animate-pulse' : 'text-muted'}`}
+              className={`btn btn-link p-2 ${isListening ? 'text-danger' : 'text-muted'}`}
               onClick={toggleVoiceInput}
-              title="Voice Speech Input"
+              title={isListening ? 'Stop listening' : 'Voice input'}
+              aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
             >
               {isListening ? <MicOff size={20} /> : <Mic size={20} />}
             </button>
 
             <button
               type="submit"
-              className="btn btn-primary bg-gradient rounded-3 px-3 py-2 d-flex align-items-center gap-1.5 shadow-sm ms-1"
+              id="chat-send-btn"
+              className="btn btn-primary bg-gradient rounded-3 px-3 py-2 d-flex align-items-center gap-1 shadow-sm ms-1"
               disabled={loading || !inputQuestion.trim()}
+              aria-label="Send message"
             >
               <Send size={16} />
               <span className="d-none d-sm-inline fw-semibold small">Send</span>
@@ -294,25 +388,43 @@ export default function AIChat() {
         </form>
       </div>
 
-      {/* EXPLAIN Execution Plan Modal */}
+      {/* EXPLAIN Modal */}
       {explainModalData && (
-        <div className="modal fade show d-block backdrop-blur" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
+        <div
+          className="modal fade show d-block"
+          style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="explain-modal-title"
+        >
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div className="modal-content bg-dark text-light border-secondary">
               <div className="modal-header border-secondary">
-                <h5 className="modal-title d-flex align-items-center gap-2">
-                  <HelpCircle size={20} className="text-info" /> EXPLAIN Query Execution Plan
+                <h5 id="explain-modal-title" className="modal-title d-flex align-items-center gap-2">
+                  <HelpCircle size={20} className="text-info" />
+                  EXPLAIN Execution Plan
                 </h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setExplainModalData(null)}></button>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setExplainModalData(null)}
+                  aria-label="Close"
+                />
               </div>
               <div className="modal-body">
-                <div className="font-monospace small text-info mb-3 p-2 bg-dark rounded border border-secondary">
+                <div className="font-monospace small text-info mb-3 p-2 bg-black rounded border border-secondary" style={{ wordBreak: 'break-all' }}>
                   {explainModalData.sql}
                 </div>
-                <DataTable data={explainModalData.plan} title="MySQL Execution Plan Breakdown" />
+                <DataTable data={explainModalData.plan} title="MySQL Execution Plan" />
               </div>
               <div className="modal-footer border-secondary">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setExplainModalData(null)}>Close</button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setExplainModalData(null)}
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

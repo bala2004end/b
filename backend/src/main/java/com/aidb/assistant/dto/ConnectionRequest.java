@@ -1,33 +1,28 @@
 package com.aidb.assistant.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ConnectionRequest {
+    @NotBlank(message = "Host is required")
     private String host;
+
+    @NotNull(message = "Port is required")
     private Integer port;
+
+    @NotBlank(message = "Username is required")
     private String username;
+
     private String password;
+
+    @NotBlank(message = "Database name is required")
     private String databaseName;
+    
     private Boolean isReadOnly;
-
-    public ConnectionRequest() {}
-    public ConnectionRequest(String host, Integer port, String username, String password, String databaseName, Boolean isReadOnly) {
-        this.host = host;
-        this.port = port;
-        this.username = username;
-        this.password = password;
-        this.databaseName = databaseName;
-        this.isReadOnly = isReadOnly;
-    }
-
-    public String getHost() { return host; }
-    public void setHost(String host) { this.host = host; }
-    public Integer getPort() { return port; }
-    public void setPort(Integer port) { this.port = port; }
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-    public String getDatabaseName() { return databaseName; }
-    public void setDatabaseName(String databaseName) { this.databaseName = databaseName; }
-    public Boolean getIsReadOnly() { return isReadOnly; }
-    public void setIsReadOnly(Boolean isReadOnly) { this.isReadOnly = isReadOnly; }
 }

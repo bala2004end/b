@@ -27,20 +27,9 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [connRes, schemaRes, analyticsRes] = await Promise.allSettled([
-        api.get('/connection/active'),
-        api.get('/schema'),
-        api.get('/analytics')
-      ]);
-
-      if (connRes.status === 'fulfilled' && connRes.value.data) {
-        setActiveDb(connRes.value.data);
-      }
-      if (schemaRes.status === 'fulfilled' && schemaRes.value.data) {
-        setSchema(schemaRes.value.data);
-      }
-      if (analyticsRes.status === 'fulfilled' && analyticsRes.value.data) {
-        setAnalytics(analyticsRes.value.data);
+      const connRes = await api.get('/connection/active');
+      if (connRes.data) {
+        setActiveDb(connRes.data);
       }
     } catch (e) {
       console.error('Failed loading dashboard data', e);
@@ -88,33 +77,6 @@ export default function Dashboard() {
             subtitle={activeDb ? `${activeDb.host}:${activeDb.port}` : 'Connect local MySQL'}
             icon={Database}
             color="info"
-          />
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <StatCard 
-            title="Indexed Tables" 
-            value={schema ? schema.totalTables : 0} 
-            subtitle={schema ? `${schema.totalViews} Views • Vector Store Ready` : 'Extract Schema'}
-            icon={TableProperties}
-            color="primary"
-          />
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <StatCard 
-            title="Queries Executed" 
-            value={analytics ? analytics.totalQueriesExecuted : 0} 
-            subtitle="AI Executed queries"
-            icon={Zap}
-            color="emerald"
-          />
-        </div>
-        <div className="col-12 col-sm-6 col-xl-3">
-          <StatCard 
-            title="Avg Execution Speed" 
-            value={analytics ? `${analytics.avgExecutionTimeMs} ms` : '0 ms'} 
-            subtitle="Sub-100ms response time"
-            icon={Clock}
-            color="amber"
           />
         </div>
       </div>

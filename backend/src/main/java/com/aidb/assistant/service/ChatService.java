@@ -1,19 +1,38 @@
 package com.aidb.assistant.service;
 
+import com.aidb.assistant.dto.ChatMessageDTO;
 import com.aidb.assistant.dto.ChatRequest;
 import com.aidb.assistant.dto.ChatResponse;
-import com.aidb.assistant.entity.*;
-import com.aidb.assistant.rag.*;
-import com.aidb.assistant.repository.*;
+import com.aidb.assistant.entity.ChatMessage;
+import com.aidb.assistant.entity.ConnectionConfig;
+import com.aidb.assistant.entity.Conversation;
+import com.aidb.assistant.entity.User;
+import com.aidb.assistant.mapper.ChatMessageMapper;
+import com.aidb.assistant.rag.AiInsightService;
+import com.aidb.assistant.rag.SqlExecutionService;
+import com.aidb.assistant.rag.SqlGeneratorService;
+import com.aidb.assistant.rag.SqlValidatorService;
+import com.aidb.assistant.repository.ChatMessageRepository;
+import com.aidb.assistant.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
+/**
+ * Core AI chat pipeline service.
+ * Orchestrates: RAG schema retrieval → SQL generation → validation → execution → explanation.
+ */
 @Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ChatService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
@@ -23,35 +42,25 @@ public class ChatService {
     private final SqlValidatorService sqlValidatorService;
     private final SqlExecutionService sqlExecutionService;
     private final AiInsightService aiInsightService;
-    private final ConversationRepository conversationRepository;
+    private final ConversationService conversationService;
     private final ChatMessageRepository chatMessageRepository;
-    private final AuditLogRepository auditLogRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    public ChatService(DatabaseConnectionService connectionService, SqlGeneratorService sqlGeneratorService, SqlValidatorService sqlValidatorService, SqlExecutionService sqlExecutionService, AiInsightService aiInsightService, ConversationRepository conversationRepository, ChatMessageRepository chatMessageRepository, AuditLogRepository auditLogRepository) {
-        this.connectionService = connectionService;
-        this.sqlGeneratorService = sqlGeneratorService;
-        this.sqlValidatorService = sqlValidatorService;
-        this.sqlExecutionService = sqlExecutionService;
-        this.aiInsightService = aiInsightService;
-        this.conversationRepository = conversationRepository;
-        this.chatMessageRepository = chatMessageRepository;
-        this.auditLogRepository = auditLogRepository;
-    }
+    private final UserRepository userRepository;
+    private final ChatMessageMapper chatMessageMapper;
+    private final ObjectMapper objectMapper; // Spring-managed bean from AppConfig
 
     @Transactional
     public ChatResponse processUserQuestion(ChatRequest request, String username) {
-        ConnectionConfig activeConfig = connectionService.getActiveConnection()
-                .orElseThrow(() -> new IllegalStateException("No active MySQL database connection found. Please connect to a database first."));
+        ConnectionConfig activeConfig = connectionService.getActiveConnection(username)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No active database connection found. Please connect to a database first."));
 
-        Conversation conversation;
-        if (request.getConversationId() != null) {
-            conversation = conversationRepository.findById(request.getConversationId())
-                    .orElseGet(() -> createNewConversation(request.getQuestion()));
-        } else {
-            conversation = createNewConversation(request.getQuestion());
-        }
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalStateException("User not found: " + username));
 
+        Conversation conversation = conversationService.getOrCreateConversation(
+                request.getConversationId(), request.getQuestion(), user);
+
+        // Save user message
         ChatMessage userMsg = ChatMessage.builder()
                 .conversation(conversation)
                 .sender("USER")
@@ -59,6 +68,7 @@ public class ChatService {
                 .build();
         chatMessageRepository.save(userMsg);
 
+        // --- RAG Pipeline ---
         List<String> retrievedTables = new ArrayList<>();
         String generatedSql = null;
         String explanation = null;
@@ -67,34 +77,35 @@ public class ChatService {
         boolean isSuccess = false;
 
         try {
-            generatedSql = sqlGeneratorService.generateSqlForQuestion(request.getQuestion(), request.getGeminiApiKey(), retrievedTables);
+            generatedSql = sqlGeneratorService.generateSqlForQuestion(
+                    request.getQuestion(), request.getGeminiApiKey(), retrievedTables);
 
-            sqlValidatorService.validateSql(generatedSql, activeConfig.getIsReadOnly());
+            sqlValidatorService.validateSql(generatedSql, Boolean.TRUE.equals(activeConfig.getIsReadOnly()));
 
             queryResult = sqlExecutionService.executeQuery(activeConfig, generatedSql);
             isSuccess = true;
 
             explanation = aiInsightService.generateSummary(
-                    request.getQuestion(),
-                    generatedSql,
-                    queryResult.rowCount,
-                    queryResult.data,
-                    request.getGeminiApiKey()
-            );
+                    request.getQuestion(), generatedSql,
+                    queryResult.rowCount, queryResult.data, request.getGeminiApiKey());
 
         } catch (Exception e) {
-            log.error("Error in AI Chat Pipeline: {}", e.getMessage(), e);
+            log.error("AI Chat Pipeline error for user [{}]: {}", username, e.getMessage(), e);
             errorMessage = e.getMessage();
-            explanation = "Failed to complete query processing: " + e.getMessage();
+            explanation = "An error occurred: " + e.getMessage();
         }
 
+        // Serialize result to JSON
         String dataJson = null;
         if (queryResult != null && queryResult.data != null) {
             try {
                 dataJson = objectMapper.writeValueAsString(queryResult.data);
-            } catch (Exception ignored) {}
+            } catch (Exception ex) {
+                log.warn("Failed to serialize query result to JSON: {}", ex.getMessage());
+            }
         }
 
+        // Save AI response message
         ChatMessage aiMsg = ChatMessage.builder()
                 .conversation(conversation)
                 .sender("AI")
@@ -110,15 +121,6 @@ public class ChatService {
                 .build();
 
         chatMessageRepository.save(aiMsg);
-
-        AuditLog audit = AuditLog.builder()
-                .username(username != null ? username : "anonymous")
-                .action("EXECUTE_SQL")
-                .details(generatedSql != null ? generatedSql : request.getQuestion())
-                .executionTimeMs(queryResult != null ? queryResult.executionTimeMs : 0L)
-                .isSuccess(isSuccess)
-                .build();
-        auditLogRepository.save(audit);
 
         return ChatResponse.builder()
                 .messageId(aiMsg.getId())
@@ -137,11 +139,4 @@ public class ChatService {
                 .build();
     }
 
-    private Conversation createNewConversation(String initialQuestion) {
-        String title = initialQuestion.length() > 30 ? initialQuestion.substring(0, 30) + "..." : initialQuestion;
-        Conversation conversation = Conversation.builder()
-                .title(title)
-                .build();
-        return conversationRepository.save(conversation);
-    }
 }

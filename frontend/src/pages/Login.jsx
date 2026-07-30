@@ -5,9 +5,9 @@ import { Sparkles, Database, Lock, Mail, User, ArrowRight } from 'lucide-react';
 
 export default function Login() {
   const [isRegister, setIsRegister] = useState(false);
-  const [username, setUsername] = useState('admin');
-  const [email, setEmail] = useState('admin@aidb.io');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 

@@ -4,9 +4,11 @@ import com.aidb.assistant.entity.ConnectionConfig;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ConnectionConfigRepository extends JpaRepository<ConnectionConfig, Long> {
-    Optional<ConnectionConfig> findByIsActiveTrue();
+    Optional<ConnectionConfig> findByUserIdAndIsActiveTrue(Long userId);
+    List<ConnectionConfig> findAllByUserId(Long userId);
 }

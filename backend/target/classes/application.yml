@@ -2,33 +2,48 @@ server:
   port: 8080
   servlet:
     context-path: /
+  tomcat:
+    max-http-form-post-size: 2MB
+    max-swallow-size: 2MB
 
 spring:
   application:
     name: aidb-assistant
-  datasource:
-    url: jdbc:h2:mem:aidb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: 
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate.format_sql: true
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
 
 aidb:
   jwt:
-    secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-    expiration-ms: 86400000 # 24 hours
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  encryption:
+    key: ${ENCRYPTION_KEY}
   sql:
     read-only: true
+    max-rows: ${SQL_MAX_ROWS:500}
   gemini:
-    api-key: ${GEMINI_API_KEY:YOUR_GEMINI_API_KEY_HERE}
-    model-name: gemini-1.5-flash
+    api-key: ${GEMINI_API_KEY}
+    model-name: ${GEMINI_MODEL_NAME:gemini-1.5-flash}
+    embedding-model-name: ${GEMINI_EMBEDDING_MODEL:text-embedding-004}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{correlationId:-no-id}] %-5level %logger{36} - %msg%n"
+  level:
+    root: INFO
+    com.aidb.assistant: INFO
