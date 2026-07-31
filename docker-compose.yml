@@ -2,30 +2,6 @@ version: '3.9'
 
 services:
 
-  # ── MySQL Application Database ──────────────────────────────────────────────
-  mysql:
-    image: mysql:8.0
-    container_name: aidb-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_change_me}
-      MYSQL_DATABASE: ${DB_NAME:-aidb_prod}
-      MYSQL_USER: ${DB_USERNAME:-aidb_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-db_change_me}
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql-init:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "--password=${MYSQL_ROOT_PASSWORD:-root_change_me}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    networks:
-      - aidb-network
-
   # ── Spring Boot Backend ─────────────────────────────────────────────────────
   backend:
     build:
@@ -34,21 +10,22 @@ services:
       target: runtime
     container_name: aidb-backend
     restart: unless-stopped
-    depends_on:
-      mysql:
-        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: ${DB_NAME:-aidb_prod}
-      DB_USERNAME: ${DB_USERNAME:-aidb_user}
-      DB_PASSWORD: ${DB_PASSWORD:-db_change_me}
+      # ── Clever Cloud MySQL ──────────────────────────────────────────────────
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # ── App Secrets ─────────────────────────────────────────────────────────
       JWT_SECRET: ${JWT_SECRET}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      # ── Gemini AI ───────────────────────────────────────────────────────────
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL_NAME: ${GEMINI_MODEL_NAME:-gemini-1.5-flash}
       GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-text-embedding-004}
+      # ── CORS ────────────────────────────────────────────────────────────────
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
     ports:
       - "8080:8080"
@@ -84,7 +61,3 @@ services:
 networks:
   aidb-network:
     driver: bridge
-
-volumes:
-  mysql_data:
-    driver: local
