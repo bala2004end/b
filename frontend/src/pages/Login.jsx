@@ -54,17 +54,18 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label className="form-label text-muted small fw-semibold">Username</label>
-            <div className="input-group">
-              <span className="input-group-text bg-dark text-muted border-secondary border-opacity-25">
-                <User size={16} />
+            <div className="input-group shadow-sm">
+              <span className="input-group-text bg-dark border-secondary border-opacity-25 border-end-0" style={{ color: '#94a3b8' }}>
+                <User size={18} />
               </span>
               <input
                 type="text"
-                className="form-control bg-dark text-light border-secondary border-opacity-25"
+                className="form-control bg-dark text-light border-secondary border-opacity-25 border-start-0 shadow-none focus-ring focus-ring-primary"
                 placeholder="Enter username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                style={{ paddingLeft: 0 }}
               />
             </div>
           </div>
@@ -72,17 +73,18 @@ export default function Login() {
           {isRegister && (
             <div className="mb-3">
               <label className="form-label text-muted small fw-semibold">Email Address</label>
-              <div className="input-group">
-                <span className="input-group-text bg-dark text-muted border-secondary border-opacity-25">
-                  <Mail size={16} />
+              <div className="input-group shadow-sm">
+                <span className="input-group-text bg-dark border-secondary border-opacity-25 border-end-0" style={{ color: '#94a3b8' }}>
+                  <Mail size={18} />
                 </span>
                 <input
                   type="email"
-                  className="form-control bg-dark text-light border-secondary border-opacity-25"
+                  className="form-control bg-dark text-light border-secondary border-opacity-25 border-start-0 shadow-none focus-ring focus-ring-primary"
                   placeholder="name@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  style={{ paddingLeft: 0 }}
                 />
               </div>
             </div>
@@ -90,17 +92,18 @@ export default function Login() {
 
           <div className="mb-4">
             <label className="form-label text-muted small fw-semibold">Password</label>
-            <div className="input-group">
-              <span className="input-group-text bg-dark text-muted border-secondary border-opacity-25">
-                <Lock size={16} />
+            <div className="input-group shadow-sm">
+              <span className="input-group-text bg-dark border-secondary border-opacity-25 border-end-0" style={{ color: '#94a3b8' }}>
+                <Lock size={18} />
               </span>
               <input
                 type="password"
-                className="form-control bg-dark text-light border-secondary border-opacity-25"
+                className="form-control bg-dark text-light border-secondary border-opacity-25 border-start-0 shadow-none focus-ring focus-ring-primary"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                style={{ paddingLeft: 0 }}
               />
             </div>
           </div>
