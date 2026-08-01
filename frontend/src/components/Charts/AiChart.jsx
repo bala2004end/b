@@ -30,14 +30,14 @@ export default function AiChart({ data, chartType = 'BAR', columns }) {
   const yAxisKey = keys[1];
 
   return (
-    <div className="glass-card p-3 rounded-3 my-3 border border-secondary border-opacity-25">
-      <div className="d-flex align-items-center gap-2 mb-3 px-1">
-        <BarChart3 size={18} className="text-primary" />
-        <span className="fw-semibold small">AI Visual Analytics ({chartType} Chart)</span>
+    <div className="glass-card p-3 rounded-3 my-3 border border-secondary border-opacity-25 chart-wrapper w-100">
+      <div className="d-flex align-items-center gap-2 mb-3 px-1 flex-shrink-0">
+        <BarChart3 size={18} className="text-primary flex-shrink-0" />
+        <span className="fw-semibold small text-truncate">AI Visual Analytics ({chartType} Chart)</span>
       </div>
 
-      <div style={{ width: '100%', height: 260 }}>
-        <ResponsiveContainer>
+      <div style={{ width: '100%', height: '220px' }} className="recharts-wrapper">
+        <ResponsiveContainer width="100%" height="100%">
           {chartType === 'PIE' ? (
             <PieChart>
               <Pie

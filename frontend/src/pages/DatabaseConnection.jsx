@@ -106,7 +106,7 @@ export default function DatabaseConnection() {
     <div className="container-fluid p-0">
       <div className="mb-4">
         <h4 className="fw-bold gradient-text mb-1 d-flex align-items-center gap-2">
-          <Database size={24} /> MySQL Database Connection & RAG Schema Indexing
+          <Database size={24} className="flex-shrink-0" /> <span className="text-wrap">MySQL Database Connection & RAG Schema Indexing</span>
         </h4>
         <p className="text-muted small">
           Connect your target MySQL database. Spring Boot will inspect tables, columns, keys, and index metadata into Vector Memory.
@@ -115,7 +115,7 @@ export default function DatabaseConnection() {
 
       <div className="row g-4">
         <div className="col-12 col-lg-7">
-          <div className="glass-card p-4 rounded-4">
+          <div className="glass-card p-3 p-sm-4 rounded-4">
             <h5 className="fw-semibold mb-3">Connection Credentials</h5>
 
             <form onSubmit={handleConnectAndIndex}>
@@ -179,26 +179,28 @@ export default function DatabaseConnection() {
                 />
               </div>
 
-              <div className="form-check form-switch mb-4 p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 ms-0 d-flex align-items-center justify-content-between">
-                <div>
+              <div className="form-check form-switch mb-4 p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 ms-0 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+                <div className="w-100">
                   <label className="form-check-label text-light fw-semibold small d-flex align-items-center gap-1.5" htmlFor="readOnlySwitch">
-                    <ShieldCheck size={16} className="text-success" /> Enforce Read-Only Mode (Recommended)
+                    <ShieldCheck size={16} className="text-success flex-shrink-0" /> Enforce Read-Only Mode (Recommended)
                   </label>
-                  <div className="text-muted" style={{ fontSize: '0.75rem' }}>Forbids DROP, DELETE, UPDATE, and ALTER queries</div>
+                  <div className="text-muted mt-1" style={{ fontSize: '0.75rem' }}>Forbids DROP, DELETE, UPDATE, and ALTER queries</div>
                 </div>
-                <input
-                  className="form-check-input ms-0"
-                  type="checkbox"
-                  id="readOnlySwitch"
-                  checked={isReadOnly}
-                  onChange={(e) => setIsReadOnly(e.target.checked)}
-                />
+                <div className="ms-sm-auto">
+                  <input
+                    className="form-check-input ms-0 fs-5 m-0"
+                    type="checkbox"
+                    id="readOnlySwitch"
+                    checked={isReadOnly}
+                    onChange={(e) => setIsReadOnly(e.target.checked)}
+                  />
+                </div>
               </div>
 
               {loadingConnect && (
                 <div className="mb-3">
-                  <div className="d-flex justify-content-between small text-muted mb-1">
-                    <span>Extracting Metadata & Indexing Vector Memory...</span>
+                  <div className="d-flex justify-content-between small text-muted mb-1 flex-wrap gap-2">
+                    <span className="text-truncate">Extracting Metadata & Indexing Vector Memory...</span>
                     <span>{indexingProgress}%</span>
                   </div>
                   <div className="progress bg-dark border border-secondary border-opacity-25" style={{ height: '8px' }}>
@@ -211,10 +213,10 @@ export default function DatabaseConnection() {
                 </div>
               )}
 
-              <div className="d-flex align-items-center gap-3">
+              <div className="action-btn-group">
                 <button
                   type="button"
-                  className="btn btn-outline-secondary px-4 py-2 rounded-3 fw-medium"
+                  className="btn btn-outline-secondary px-3 px-sm-4 py-2 rounded-3 fw-medium d-flex justify-content-center align-items-center"
                   onClick={handleTestConnection}
                   disabled={loadingTest || loadingConnect}
                 >
@@ -224,11 +226,11 @@ export default function DatabaseConnection() {
 
                 <button
                   type="submit"
-                  className="btn btn-primary bg-gradient px-4 py-2 rounded-3 fw-semibold d-flex align-items-center gap-2 shadow-sm"
+                  className="btn btn-primary bg-gradient px-3 px-sm-4 py-2 rounded-3 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm"
                   disabled={loadingConnect}
                 >
                   {loadingConnect ? <RefreshCw className="animate-spin" size={16} /> : <Sparkles size={16} />}
-                  Connect & Extract Vector Schema
+                  <span>Connect & Extract Schema</span>
                 </button>
               </div>
             </form>
@@ -238,9 +240,9 @@ export default function DatabaseConnection() {
         <div className="col-12 col-lg-5">
           {/* Test Result Banner */}
           {testResult && (
-            <div className={`p-4 rounded-4 glass-card mb-4 border ${testResult.connected ? 'border-success' : 'border-danger'}`}>
+            <div className={`p-3 p-sm-4 rounded-4 glass-card mb-4 border ${testResult.connected ? 'border-success' : 'border-danger'}`}>
               <div className="d-flex align-items-center gap-2 mb-2">
-                {testResult.connected ? <CheckCircle2 className="text-success" size={20} /> : <AlertCircle className="text-danger" size={20} />}
+                {testResult.connected ? <CheckCircle2 className="text-success flex-shrink-0" size={20} /> : <AlertCircle className="text-danger flex-shrink-0" size={20} />}
                 <h6 className="fw-semibold mb-0">{testResult.connected ? 'Connection Succeeded' : 'Connection Failed'}</h6>
               </div>
               <p className="small text-muted mb-0">{testResult.message}</p>
@@ -249,38 +251,38 @@ export default function DatabaseConnection() {
 
           {/* Connection Status Card */}
           {connectResult && (
-            <div className={`p-4 rounded-4 glass-card border ${connectResult.connected ? 'border-success' : 'border-danger'}`}>
-              <div className="d-flex align-items-center justify-content-between mb-3">
+            <div className={`p-3 p-sm-4 rounded-4 glass-card border ${connectResult.connected ? 'border-success' : 'border-danger'}`}>
+              <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                 <div className="d-flex align-items-center gap-2">
-                  <Database size={20} className="text-info" />
+                  <Database size={20} className="text-info flex-shrink-0" />
                   <h6 className="fw-semibold mb-0">Active Vector Connection</h6>
                 </div>
                 <span className="badge bg-success badge-glow">ACTIVE</span>
               </div>
 
               <ul className="list-unstyled small d-flex flex-column gap-2 mb-0 text-muted">
-                <li className="d-flex justify-content-between">
+                <li className="d-flex justify-content-between flex-wrap gap-2">
                   <span>Database:</span>
-                  <strong className="text-light">{connectResult.databaseName}</strong>
+                  <strong className="text-light text-break">{connectResult.databaseName}</strong>
                 </li>
-                <li className="d-flex justify-content-between">
+                <li className="d-flex justify-content-between flex-wrap gap-2">
                   <span>Host & Port:</span>
-                  <strong className="text-light">{connectResult.host}:{connectResult.port}</strong>
+                  <strong className="text-light text-break">{connectResult.host}:{connectResult.port}</strong>
                 </li>
-                <li className="d-flex justify-content-between">
+                <li className="d-flex justify-content-between flex-wrap gap-2">
                   <span>Mode:</span>
                   <strong className={connectResult.isReadOnly ? 'text-success' : 'text-warning'}>
                     {connectResult.isReadOnly ? 'Read-Only Protected' : 'Write Allowed'}
                   </strong>
                 </li>
                 {connectResult.totalTables && (
-                  <li className="d-flex justify-content-between">
+                  <li className="d-flex justify-content-between flex-wrap gap-2">
                     <span>Tables Indexed:</span>
                     <strong className="text-primary">{connectResult.totalTables} Tables</strong>
                   </li>
                 )}
                 {connectResult.totalEmbeddings && (
-                  <li className="d-flex justify-content-between">
+                  <li className="d-flex justify-content-between flex-wrap gap-2">
                     <span>Vector Embeddings:</span>
                     <strong className="text-info">{connectResult.totalEmbeddings} Chunks</strong>
                   </li>

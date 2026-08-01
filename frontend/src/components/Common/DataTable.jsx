@@ -5,7 +5,7 @@ import { exportToCSV, exportToJSON } from '../../services/exportUtils';
 export default function DataTable({ data, columns, title = 'Query Results' }) {
   if (!data || data.length === 0) {
     return (
-      <div className="p-4 text-center glass-card rounded-3 text-muted">
+      <div className="p-4 text-center glass-card rounded-3 text-muted w-100">
         <TableIcon size={32} className="mb-2 opacity-50" />
         <div>No result rows returned for this execution.</div>
       </div>
@@ -15,10 +15,10 @@ export default function DataTable({ data, columns, title = 'Query Results' }) {
   const cols = columns || Object.keys(data[0]);
 
   return (
-    <div className="glass-card rounded-3 overflow-hidden my-3 border border-secondary border-opacity-25">
+    <div className="glass-card rounded-3 overflow-hidden my-3 border border-secondary border-opacity-25 w-100">
       {/* Table Header Controls */}
-      <div className="d-flex align-items-center justify-content-between px-3 py-2 bg-secondary bg-opacity-25 border-bottom border-secondary border-opacity-25">
-        <div className="d-flex align-items-center gap-2">
+      <div className="datatable-header bg-secondary bg-opacity-25 border-bottom border-secondary border-opacity-25">
+        <div className="d-flex align-items-center gap-2 flex-shrink-0">
           <TableIcon size={16} className="text-info" />
           <span className="fw-semibold small">{title}</span>
           <span className="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 rounded-pill small">
@@ -26,9 +26,9 @@ export default function DataTable({ data, columns, title = 'Query Results' }) {
           </span>
         </div>
 
-        <div className="d-flex align-items-center gap-2">
+        <div className="d-flex align-items-center gap-2 flex-shrink-0">
           <button 
-            className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 py-1 px-2.5"
+            className="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center gap-1 py-1 px-2.5 flex-grow-1 flex-sm-grow-0"
             onClick={() => exportToCSV('query_export', data, cols)}
             title="Export as CSV"
           >
@@ -37,7 +37,7 @@ export default function DataTable({ data, columns, title = 'Query Results' }) {
           </button>
 
           <button 
-            className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 py-1 px-2.5"
+            className="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center gap-1 py-1 px-2.5 flex-grow-1 flex-sm-grow-0"
             onClick={() => exportToJSON('query_export', data)}
             title="Export as JSON"
           >
@@ -54,7 +54,7 @@ export default function DataTable({ data, columns, title = 'Query Results' }) {
             <tr>
               <th scope="col" className="text-muted text-uppercase small" style={{ width: '50px' }}>#</th>
               {cols.map((col) => (
-                <th key={col} scope="col" className="fw-semibold text-info">
+                <th key={col} scope="col" className="fw-semibold text-info text-nowrap">
                   {col}
                 </th>
               ))}

@@ -20,6 +20,20 @@
   --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'Fira Code', monospace;
+  --sidebar-width: 260px;
+  --header-height: 56px;
+}
+
+/* ── Base Reset ─────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -29,9 +43,12 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-main);
   overflow-x: hidden;
+  /* Use dynamic viewport height where supported */
+  min-height: 100dvh;
+  min-height: 100vh; /* fallback */
 }
 
-/* Glassmorphism Cards */
+/* ── Glassmorphism Cards ────────────────────────────────── */
 .glass-card {
   background: var(--bg-card);
   backdrop-filter: blur(12px);
@@ -47,11 +64,12 @@ body {
   box-shadow: var(--shadow-glow);
 }
 
-/* Gradients & Badges */
+/* ── Gradients & Badges ─────────────────────────────────── */
 .gradient-text {
   background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .badge-glow {
@@ -62,31 +80,89 @@ body {
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
 }
 
-/* Code Blocks */
+/* ── Code Blocks ────────────────────────────────────────── */
 .sql-codeblock {
   font-family: var(--font-mono);
   background-color: #090d16 !important;
   color: #38bdf8;
-  border-radius: 8px;
+  border-radius: 0 0 8px 8px;
   padding: 1rem;
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  white-space: pre-wrap;
-  word-break: break-all;
+  border: none;
+  /* Use pre + overflow-x for proper horizontal scroll of long SQL */
+  white-space: pre;
+  overflow-x: auto;
+  word-break: normal;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin: 0;
 }
 
-/* ChatGPT Style Chat Interface */
+/* ── App Shell Layout ───────────────────────────────────── */
+.app-shell {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* Desktop sidebar — static, always visible */
+.app-sidebar-desktop {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Main content column */
+.app-main-col {
+  flex: 1;
+  min-width: 0; /* Prevent flex child overflow */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Main scrollable area */
+.app-main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1.5rem;
+}
+
+/* ── ChatGPT Style Chat Interface ───────────────────────── */
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 120px);
+  /* Use full available height from flex parent */
+  height: 100%;
+  overflow: hidden;
+  position: relative;
 }
 
 .chat-messages-scroll {
   flex: 1;
   overflow-y: auto;
-  padding-right: 8px;
+  overflow-x: hidden;
+  padding-right: 4px;
+  /* Ensure it can shrink */
+  min-height: 0;
 }
 
+.chat-input-bar {
+  flex-shrink: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-primary);
+  /* Stick to bottom when content is short */
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+/* ── Chat Bubbles ───────────────────────────────────────── */
 .chat-bubble-user {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: #ffffff;
@@ -95,6 +171,8 @@ body {
   max-width: 80%;
   margin-left: auto;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .chat-bubble-ai {
@@ -103,11 +181,13 @@ body {
   color: var(--text-main);
   border-radius: 18px 18px 18px 2px;
   padding: 16px 20px;
-  max-width: 90%;
+  max-width: 100%;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  min-width: 0;
+  overflow-x: hidden;
 }
 
-/* Typing Animation Dots */
+/* ── Typing Animation Dots ──────────────────────────────── */
 .typing-indicator {
   display: inline-flex;
   align-items: center;
@@ -120,6 +200,7 @@ body {
   background-color: var(--accent-cyan);
   border-radius: 50%;
   animation: typingBounce 1.4s infinite ease-in-out both;
+  flex-shrink: 0;
 }
 
 .typing-dot:nth-child(1) { animation-delay: -0.32s; }
@@ -130,7 +211,36 @@ body {
   40% { transform: scale(1.0); }
 }
 
-/* Scrollbars */
+/* ── Toast Notifications ────────────────────────────────── */
+.toast-stack {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  /* Prevent toast from going off-screen */
+  max-width: calc(100vw - 2rem);
+  pointer-events: none;
+}
+
+.toast-stack > * {
+  pointer-events: auto;
+}
+
+/* ── Sidebar Offcanvas Overrides ────────────────────────── */
+.offcanvas.sidebar-offcanvas {
+  width: var(--sidebar-width) !important;
+  background-color: #111827 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.offcanvas.sidebar-offcanvas .offcanvas-body {
+  padding: 0;
+}
+
+/* ── Responsive Scrollbars ──────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -149,8 +259,295 @@ body {
   background: #475569;
 }
 
-/* Form Input Placeholders */
+/* ── Form Input Placeholders ────────────────────────────── */
 .form-control::placeholder {
   color: #64748b !important;
   opacity: 1 !important;
+}
+
+/* ── Utility: Prevent overflow in flex children ─────────── */
+.min-w-0 {
+  min-width: 0 !important;
+}
+
+/* ── SqlCodeBlock toolbar wrap ──────────────────────────── */
+.sql-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(100, 116, 139, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sql-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+/* ── DataTable header controls ──────────────────────────── */
+.datatable-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+/* ── Charts responsive ──────────────────────────────────── */
+.chart-wrapper {
+  width: 100%;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Hamburger Button ───────────────────────────────────── */
+.hamburger-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Header badge responsive ─────────────────────────────── */
+.header-badge-text {
+  display: inline;
+}
+
+/* ── Connection DB page button group ─────────────────────── */
+.action-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* ── StatCard value overflow guard ──────────────────────── */
+.statcard-value {
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+  font-weight: 700;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+/* ── Suggestion chips max width ──────────────────────────── */
+.suggestion-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  max-width: 100%;
+}
+
+/* ==========================================================
+   RESPONSIVE MEDIA QUERIES
+   ========================================================== */
+
+/* ── 320px — Smallest phones ────────────────────────────── */
+@media (max-width: 374px) {
+  .app-main-content {
+    padding: 0.75rem;
+  }
+
+  .chat-bubble-user,
+  .chat-bubble-ai {
+    padding: 10px 12px;
+    font-size: 0.875rem;
+  }
+
+  .chat-bubble-user {
+    max-width: 92%;
+  }
+
+  .header-badge-text {
+    display: none;
+  }
+
+  .sql-codeblock {
+    font-size: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  h4, .h4 { font-size: 1.1rem; }
+  h5, .h5 { font-size: 1rem; }
+  h6, .h6 { font-size: 0.9rem; }
+
+  .glass-card {
+    border-radius: 8px;
+  }
+
+  .toast-stack {
+    top: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    max-width: none;
+  }
+}
+
+/* ── 375px–575px — Standard phones ─────────────────────── */
+@media (max-width: 575px) {
+  .app-main-content {
+    padding: 1rem;
+  }
+
+  .chat-bubble-user {
+    max-width: 88%;
+  }
+
+  .chat-bubble-ai {
+    padding: 12px 14px;
+  }
+
+  .header-badge-text {
+    display: none;
+  }
+
+  /* Reduce avatar/icon size on chat messages */
+  .chat-msg-avatar {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .chat-msg-gap {
+    gap: 0.5rem !important;
+  }
+
+  /* DB Connection page buttons stack */
+  .action-btn-group .btn {
+    flex: 1 1 auto;
+    min-width: 140px;
+  }
+
+  /* Modal fullscreen on mobile */
+  .modal-dialog {
+    margin: 0;
+  }
+
+  .statcard-value {
+    font-size: 1.25rem;
+  }
+
+  .sql-codeblock {
+    font-size: 0.78rem;
+  }
+
+  /* Dashboard sample question cards */
+  .sample-question-card {
+    padding: 0.625rem 0.75rem;
+  }
+}
+
+/* ── 576px–767px — Large phones / small tablets ─────────── */
+@media (min-width: 576px) and (max-width: 767px) {
+  .app-main-content {
+    padding: 1.25rem;
+  }
+
+  .chat-bubble-user {
+    max-width: 82%;
+  }
+
+  .header-badge-text {
+    display: none;
+  }
+}
+
+/* ── Up to 991px — Hide desktop sidebar, show hamburger ─── */
+@media (max-width: 991px) {
+  /* Desktop sidebar hidden — offcanvas takes over */
+  .app-sidebar-desktop {
+    display: none !important;
+  }
+
+  /* Hamburger visible */
+  .hamburger-btn {
+    display: flex !important;
+  }
+
+  /* Chat container: use dvh for mobile browsers with navigation bars */
+  .app-shell {
+    height: 100dvh;
+    height: 100vh; /* fallback */
+  }
+}
+
+/* ── 768px–991px — Tablets ──────────────────────────────── */
+@media (min-width: 768px) and (max-width: 991px) {
+  .app-main-content {
+    padding: 1.5rem;
+  }
+
+  .chat-bubble-user {
+    max-width: 75%;
+  }
+}
+
+/* ── 992px+ — Desktop: show sidebar, hide hamburger ─────── */
+@media (min-width: 992px) {
+  .app-sidebar-desktop {
+    display: flex !important;
+    flex-direction: column;
+  }
+
+  /* Hamburger hidden on desktop */
+  .hamburger-btn {
+    display: none !important;
+  }
+
+  /* Chart height on desktop */
+  .chart-wrapper .recharts-wrapper {
+    height: 260px !important;
+  }
+}
+
+/* ── 1200px+ — Large desktop ────────────────────────────── */
+@media (min-width: 1200px) {
+  .app-main-content {
+    padding: 2rem;
+  }
+
+  .chat-bubble-user {
+    max-width: 70%;
+  }
+
+  .chat-bubble-ai {
+    max-width: 95%;
+  }
+}
+
+/* ── 1400px+ — XL desktop ───────────────────────────────── */
+@media (min-width: 1400px) {
+  .app-main-content {
+    padding: 2rem 2.5rem;
+  }
+}
+
+/* ── Accessibility: Focus Visible ──────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+/* ── Prevent images from overflowing ──────────────────── */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── Table cells don't break layout ─────────────────────── */
+.table td,
+.table th {
+  word-break: break-word;
+  overflow-wrap: break-word;
 }

@@ -11,15 +11,15 @@ export default function SqlCodeBlock({ sql, onExecute, onExplain, onSave }) {
   };
 
   return (
-    <div className="position-relative my-2 rounded-3 overflow-hidden border border-info border-opacity-25 bg-dark">
+    <div className="position-relative my-2 rounded-3 border border-info border-opacity-25 bg-dark">
       {/* Code Header Toolbar */}
-      <div className="d-flex align-items-center justify-content-between px-3 py-2 bg-secondary bg-opacity-25 border-bottom border-secondary border-opacity-25">
-        <span className="small font-monospace text-info d-flex align-items-center gap-1.5 fw-semibold">
+      <div className="sql-toolbar">
+        <span className="small font-monospace text-info d-flex align-items-center gap-1.5 fw-semibold flex-shrink-0">
           <Sparkles size={14} /> Generated MySQL Query
         </span>
-        <div className="d-flex align-items-center gap-1">
+        <div className="sql-toolbar-actions">
           <button 
-            className="btn btn-dark btn-sm text-light p-1 px-2 border-0 d-flex align-items-center gap-1 small"
+            className="btn btn-dark btn-sm text-light p-1 px-2 border-0 d-flex align-items-center gap-1 small flex-shrink-0"
             onClick={handleCopy}
             title="Copy SQL to Clipboard"
           >
@@ -29,7 +29,7 @@ export default function SqlCodeBlock({ sql, onExecute, onExplain, onSave }) {
 
           {onExecute && (
             <button 
-              className="btn btn-success btn-sm p-1 px-2 d-flex align-items-center gap-1 small"
+              className="btn btn-success btn-sm p-1 px-2 d-flex align-items-center gap-1 small flex-shrink-0"
               onClick={() => onExecute(sql)}
               title="Run Query"
             >
@@ -40,7 +40,7 @@ export default function SqlCodeBlock({ sql, onExecute, onExplain, onSave }) {
 
           {onExplain && (
             <button 
-              className="btn btn-outline-info btn-sm p-1 px-2 d-flex align-items-center gap-1 small"
+              className="btn btn-outline-info btn-sm p-1 px-2 d-flex align-items-center gap-1 small flex-shrink-0"
               onClick={() => onExplain(sql)}
               title="Explain Execution Plan"
             >
@@ -51,7 +51,7 @@ export default function SqlCodeBlock({ sql, onExecute, onExplain, onSave }) {
 
           {onSave && (
             <button 
-              className="btn btn-outline-warning btn-sm p-1 px-2 d-flex align-items-center gap-1 small"
+              className="btn btn-outline-warning btn-sm p-1 px-2 d-flex align-items-center gap-1 small flex-shrink-0"
               onClick={() => onSave(sql)}
               title="Bookmark Query"
             >
@@ -63,7 +63,8 @@ export default function SqlCodeBlock({ sql, onExecute, onExplain, onSave }) {
       </div>
 
       {/* Code Block Display */}
-      <pre className="sql-codeblock m-0">
+      {/* Note: .sql-codeblock class provides overflow-x: auto and white-space: pre in index.css */}
+      <pre className="sql-codeblock">
         <code>{sql}</code>
       </pre>
     </div>
